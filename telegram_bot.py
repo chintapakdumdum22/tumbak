@@ -3,7 +3,7 @@ import subprocess
 import requests
 import asyncio
 import threading
-from flask import Flask  # Use regular Flask
+from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
@@ -47,7 +47,6 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     key, iv = await fetch_key_iv(video_key_url)
 
     if key and iv:
-        # Assuming N_m3u8DL-RE is installed and in your PATH
         command = [
             'N_m3u8DL-RE', 
             '--key', key,
@@ -59,10 +58,8 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             subprocess.run(command, check=True)
             await update.message.reply_text("Download completed! Uploading video...")
             
-            # Assuming the output video file is named "output.mp4"
             output_file = "output.mp4"  # Change this to match the actual output filename
 
-            # Upload the video to Telegram
             with open(output_file, 'rb') as video_file:
                 await update.message.reply_video(video_file)
 
@@ -85,12 +82,15 @@ async def async_run_telegram_bot():
     await bot_app.updater.start_polling()
     await bot_app.updater.idle()
 
+def run_flask_app():
+    app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080)))
+
 def main():
-    # Start Flask app in a separate thread
-    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080))))
+    # Start the Flask app in a separate thread
+    flask_thread = threading.Thread(target=run_flask_app)
     flask_thread.start()
 
-    # Start Telegram bot in the main thread
+    # Start the Telegram bot in the main thread
     run_telegram_bot()
 
 if __name__ == '__main__':
