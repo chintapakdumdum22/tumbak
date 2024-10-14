@@ -1,33 +1,26 @@
-# Use official Python image as a base
-FROM python:3.9-slim
+# Use an official Python runtime as a parent image
+FROM python:3.12-slim
 
-# Set environment variables to avoid issues with input prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Create a directory for the app
+# Set the working directory
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-COPY . /app
+COPY . .
 
-# Install necessary system dependencies
+# Install dependencies
+RUN pip install -r requirements.txt
+
+# Install N_m3u8DL-RE
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    ffmpeg \
-    wget \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y wget && \
+    wget https://github.com/DevLARLEY/N_m3u8DL-RE/releases/download/v0.2.1.2-beta/N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz && \
+    tar -xzf N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz && \
+    mv N_m3u8DL-RE /usr/local/bin/ && \
+    chmod +x /usr/local/bin/N_m3u8DL-RE && \
+    rm N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz
 
-# Install N_m3u8DL-RE (assuming Linux binary available)
-RUN wget https://github.com/nilaoda/N_m3u8DL-RE/releases/download/3.0.0/N_m3u8DL-RE_Linux -O /usr/local/bin/N_m3u8DL-RE \
-    && chmod +x /usr/local/bin/N_m3u8DL-RE
-
-# Install Python dependencies from requirements.txt
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Expose port 8080 for Flask
+# Make port 8080 available to the world outside this container
 EXPOSE 8080
 
-# Run the app
-CMD ["python", "app.py"]
+# Run the application
+CMD ["python", "telegram_bot.py"]
