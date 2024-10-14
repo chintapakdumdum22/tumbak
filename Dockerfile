@@ -1,26 +1,27 @@
-# Use an official Python runtime as a parent image
-FROM python:3.12-slim
+# Use an appropriate base image
+FROM python:3.9-slim
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . .
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN pip install -r requirements.txt
+# Clone your GitHub repository
+RUN git clone https://github.com/chintapakdumdum22/tumbak .
 
 # Install N_m3u8DL-RE
-RUN apt-get update && \
-    apt-get install -y wget && \
-    wget https://github.com/DevLARLEY/N_m3u8DL-RE/releases/download/v0.2.1.2-beta/N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz && \
-    tar -xzf N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz && \
-    mv N_m3u8DL-RE /usr/local/bin/ && \
-    chmod +x /usr/local/bin/N_m3u8DL-RE && \
-    rm N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz
+RUN wget https://github.com/DevLARLEY/N_m3u8DL-RE/releases/download/v0.2.1.2-beta/N_m3u8DL-RE_Beta_linux-x64_20241014.tar.gz && \
+    tar -xzvf N_m3u8DL-RE_Beta_build-linux-x64_20241014.tar.gz && \
+    chmod +x N_m3u8DL-RE
 
-# Make port 8080 available to the world outside this container
+# Install Python dependencies
+RUN pip install -r requirements.txt
+
+# Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application
+# Run your application
 CMD ["python", "telegram_bot.py"]
