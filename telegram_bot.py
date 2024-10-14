@@ -5,6 +5,7 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import threading
+import asyncio
 
 app = Flask(__name__)
 
@@ -45,7 +46,6 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     key, iv = await fetch_key_iv(video_key_url)
 
     if key and iv:
-        # Assuming N_m3u8DL-RE is installed and in your PATH
         command = [
             'N_m3u8DL-RE', 
             '--key', key,
@@ -57,10 +57,8 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
             subprocess.run(command, check=True)
             await update.message.reply_text("Download completed! Uploading video...")
             
-            # Assuming the output video file is named "output.mp4"
-            output_file = "output.mp4"  # Change this to match the actual output filename
+            output_file = "output.mp4"  # Adjust to the actual file path
 
-            # Upload the video to Telegram
             with open(output_file, 'rb') as video_file:
                 await update.message.reply_video(video_file)
 
@@ -75,11 +73,17 @@ def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080)))  # Start Flask app on port 8080
 
 def run_telegram_bot():
+    # Create a new event loop for this thread
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    loop = asyncio.get_event_loop()
+
     bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
     
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("download", download_video))
 
+    # Run the bot with the newly created event loop
+    loop.run_until_complete(bot_app.initialize())
     bot_app.run_polling()
 
 if __name__ == '__main__':
