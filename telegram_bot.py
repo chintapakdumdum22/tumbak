@@ -5,8 +5,8 @@ from flask import Flask, request
 from telethon import TelegramClient, events
 from pymongo import MongoClient
 
-# Environment variables (store them in Koyeb)
-API_ID = os.getenv("20736921")
+# Environment variables with defaults
+API_ID = os.getenv("API_ID", "20736921")
 API_HASH = os.getenv("API_HASH", "42b34442e52dc3e07b3e0783389be8cb")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
 OWNER_ID = int(os.getenv("OWNER_ID", "1366730834"))
