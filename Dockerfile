@@ -1,12 +1,10 @@
-FROM ubuntu:22.04
+FROM python:3.10  # Use a specific version of Python
 
 # Install required system packages
 RUN apt-get update -y && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
-    python3-pip \
-    python3-dev \
     libffi-dev \
     libssl-dev \
     libjpeg-dev \
@@ -16,19 +14,14 @@ RUN apt-get update -y && apt-get upgrade -y \
     build-essential \
     ffmpeg \
     aria2 \
-    python3-venv \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a virtual environment
-RUN python3 -m venv /venv
-
-# Set the PATH to the virtual environment
-ENV PATH="/venv/bin:$PATH"
+# Set the working directory
+WORKDIR /app/
 
 # Copy your application code
-COPY . /app/
-WORKDIR /app/
+COPY . .
 
 # Install Python packages
 RUN pip install --no-cache-dir --upgrade --requirement requirements.txt
