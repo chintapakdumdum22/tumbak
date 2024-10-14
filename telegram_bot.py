@@ -2,14 +2,15 @@ import os
 import subprocess
 import requests
 import asyncio
-from aioflask import Flask  # Use aioflask for asynchronous Flask app
+import threading
+from flask import Flask  # Use regular Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 app = Flask(__name__)
 
 @app.route('/')
-async def hello_world():
+def hello_world():
     return 'Hello from LuciferBanker'
 
 
@@ -72,7 +73,10 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Failed to retrieve key and IV.")
 
-async def run_telegram_bot():
+def run_telegram_bot():
+    asyncio.run(async_run_telegram_bot())
+
+async def async_run_telegram_bot():
     bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("download", download_video))
@@ -81,12 +85,13 @@ async def run_telegram_bot():
     await bot_app.updater.start_polling()
     await bot_app.updater.idle()
 
-async def main():
-    # Run Flask and Telegram bot concurrently
-    await asyncio.gather(
-        app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080))),
-        run_telegram_bot()
-    )
+def main():
+    # Start Flask app in a separate thread
+    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080))))
+    flask_thread.start()
+
+    # Start Telegram bot in the main thread
+    run_telegram_bot()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
