@@ -3,6 +3,14 @@ import subprocess
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from flask import Flask
+
+# Create a Flask app for health checks
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return "Bot is running!", 200
 
 # Fetching the environment variables
 API_ID = int(os.getenv("API_ID", "20736921"))
@@ -64,12 +72,14 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Failed to retrieve key and IV.")
 
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080)))  # Start Flask app on port 8080
     
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("download", download_video))
+    bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
+    
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("download", download_video))
 
-    app.run_polling()
+    bot_app.run_polling()
 
 if __name__ == '__main__':
     main()
