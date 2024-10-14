@@ -4,6 +4,7 @@ import requests
 from flask import Flask, request
 from telethon import TelegramClient, events
 from pymongo import MongoClient
+from threading import Thread
 
 # Environment variables with defaults
 API_ID = os.getenv("API_ID", "20736921")
@@ -99,11 +100,15 @@ async def handle_message(event):
 def index():
     return 'Telegram bot is running.'
 
-# Run the Flask app and Telegram bot
+# Function to run the Flask app
+def run_flask():
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+
+# Start both Flask app and Telegram bot
 if __name__ == '__main__':
-    # Start Flask app on port 8080
-    app.run(host='0.0.0.0', port=8080)
+    # Run Flask app in a separate thread
+    flask_thread = Thread(target=run_flask)
+    flask_thread.start()
 
     # Start Telegram client and listen for messages
-    client.start()
     client.run_until_disconnected()
