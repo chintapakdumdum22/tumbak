@@ -9,6 +9,9 @@ RUN apt-get update -y && apt-get upgrade -y \
     python3-dev \
     libffi-dev \
     libssl-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
     ffmpeg \
     aria2 \
     && apt-get clean \
