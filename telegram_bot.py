@@ -1,103 +1,107 @@
 import os
 import subprocess
 import requests
-import asyncio
-import signal
-import threading  # Importing threading
-from flask import Flask
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from flask import Flask, request
+from telethon import TelegramClient, events
+from pymongo import MongoClient
 
+# Required credentials
+API_ID = os.getenv("20736921")
+API_HASH = os.getenv("42b34442e52dc3e07b3e0783389be8cb")
+BOT_TOKEN = os.getenv("8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
+OWNER_ID = int(os.getenv("1366730834"))
+SUDO_USERS = list(map(int, os.getenv("1996039956").split(",")))
+MONGO_URL = os.getenv("mongodb+srv://creatorar30:fdINvMPYXYwUyHdq@cluster0.pbaou.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+
+# Initialize Telegram client
+client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+
+# MongoDB setup for storing data
+mongo_client = MongoClient(MONGO_URL)
+db = mongo_client['telegram_bot_db']
+
+# Flask app
 app = Flask(__name__)
 
-@app.route('/')
-def hello_world():
-    return 'Hello from LuciferBanker'
+# Helper function to extract URI and IV from m3u8
+def extract_uri_iv(m3u8_link):
+    response = requests.get(m3u8_link)
+    lines = response.text.split('\n')
+    uri = None
+    iv = None
+    for line in lines:
+        if line.startswith("#EXT-X-KEY"):
+            uri = line.split('URI="')[1].split('"')[0]
+            iv = line.split('IV=')[1] if 'IV=' in line else None
+            break
+    return uri, iv
 
+# Helper function to get key using the URI
+def get_decryption_key(uri):
+    key_url = f"https://madxabhi-pw-78ab681aba3f.herokuapp.com/appx-hls-key?videoKey={uri}"
+    response = requests.get(key_url)
+    return response.text
 
-# Fetching the environment variables
-API_ID = int(os.getenv("API_ID", "20736921"))
-API_HASH = os.getenv("API_HASH", "42b34442e52dc3e07b3e0783389be8cb")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
-OWNER_ID = int(os.getenv("OWNER_ID", "1366730834"))
-SUDO_USERS = list(map(int, os.getenv("SUDO_USERS", "1366730834").split()))
+# Function to download and decrypt video using N_m3u8DL-RE
+def download_and_decrypt(m3u8_link, key, iv):
+    command = [
+        "N_m3u8DL-RE",
+        m3u8_link,
+        "--key", key,
+        "--iv", iv,
+        "--save-dir", "./downloads",
+        "--auto-select"
+    ]
+    subprocess.run(command, check=True)
+    return './downloads/decrypted_video.mp4'
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Welcome! Use /download <m3u8_url> to download and decrypt the video.")
+# Handle incoming Telegram messages
+@client.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    await event.respond('Send me an m3u8 link to download and decrypt.')
 
-async def fetch_key_iv(video_key_url):
-    try:
-        response = requests.get(video_key_url)
-        response.raise_for_status()
-        data = response.json()
-        key = data.get('key')  # Adjust based on your API response structure
-        iv = data.get('iv')    # Adjust based on your API response structure
-        return key, iv
-    except Exception as e:
-        print(f"Error fetching key and IV: {e}")
-        return None, None
-
-async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(context.args) != 1:
-        await update.message.reply_text("Usage: /download <m3u8_url>")
+@client.on(events.NewMessage)
+async def handle_message(event):
+    sender_id = event.sender_id
+    if sender_id != OWNER_ID and sender_id not in SUDO_USERS:
+        await event.reply("You are not authorized to use this bot.")
         return
 
-    m3u8_url = context.args[0]
-    video_key_url = f"https://madxabhi-pw-78ab681aba3f.herokuapp.com/appx-hls-key?videoKey={m3u8_url}"
+    m3u8_link = event.text
+    await event.reply("Processing your request...")
 
-    key, iv = await fetch_key_iv(video_key_url)
+    try:
+        # Extract URI and IV from m3u8
+        uri, iv = extract_uri_iv(m3u8_link)
+        if not uri or not iv:
+            await event.reply("Failed to extract URI and IV from the link.")
+            return
 
-    if key and iv:
-        command = [
-            'N_m3u8DL-RE', 
-            '--key', key,
-            '--iv', iv,
-            m3u8_url
-        ]
+        # Retrieve the decryption key
+        key = get_decryption_key(uri)
+        if not key:
+            await event.reply("Failed to retrieve the decryption key.")
+            return
 
-        try:
-            subprocess.run(command, check=True)
-            await update.message.reply_text("Download completed! Uploading video...")
+        # Download and decrypt the video
+        video_path = download_and_decrypt(m3u8_link, key, iv)
+        await event.reply("Video downloaded and decrypted successfully. Uploading...")
 
-            output_file = "output.mp4"  # Change this to match the actual output filename
+        # Upload the video to Telegram
+        await client.send_file(event.chat_id, video_path, caption="Here is your decrypted video!")
 
-            with open(output_file, 'rb') as video_file:
-                await update.message.reply_video(video_file)
+    except Exception as e:
+        await event.reply(f"An error occurred: {str(e)}")
 
-            await update.message.reply_text("Video uploaded successfully!")
-
-        except subprocess.CalledProcessError as e:
-            await update.message.reply_text(f"Error during download: {e}")
-    else:
-        await update.message.reply_text("Failed to retrieve key and IV.")
-
-async def run_telegram_bot():
-    bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(CommandHandler("download", download_video))
-    
-    await bot_app.start()
-    await bot_app.updater.start_polling()
-    await bot_app.updater.idle()
-
-def run_flask_app():
-    app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080)))
-
-def handle_exit(sig, frame):
-    print("Shutting down gracefully...")
-    asyncio.get_event_loop().stop()
-
-def main():
-    # Register shutdown handler
-    signal.signal(signal.SIGINT, handle_exit)  # Handle Ctrl+C
-    signal.signal(signal.SIGTERM, handle_exit)  # Handle termination signal
-
-    # Start the Flask app in a separate thread
-    flask_thread = threading.Thread(target=run_flask_app)
-    flask_thread.start()
-
-    # Start the Telegram bot
-    asyncio.run(run_telegram_bot())
+# Flask route for health check (for Koyeb deployment)
+@app.route('/')
+def index():
+    return 'Telegram bot is running.'
 
 if __name__ == '__main__':
-    main()
+    # Run Flask app
+    app.run(host='0.0.0.0', port=8080)
+
+    # Start the Telegram client
+    client.start()
+    client.run_until_disconnected()
