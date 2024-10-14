@@ -7,11 +7,11 @@ from pymongo import MongoClient
 
 # Environment variables (store them in Koyeb)
 API_ID = os.getenv("20736921")
-API_HASH = os.getenv("42b34442e52dc3e07b3e0783389be8cb")
-BOT_TOKEN = os.getenv("8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
-OWNER_ID = int(os.getenv("1366730834"))
+API_HASH = getenv("API_HASH", "42b34442e52dc3e07b3e0783389be8cb")
+BOT_TOKEN = getenv("BOT_TOKEN", "8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
+OWNER_ID = int(getenv("OWNER_ID", "1366730834"))
 SUDO_USERS = list(map(int, os.getenv("1996039956").split(",")))
-MONGO_URL = os.getenv("mongodb+srv://creatorar30:fdINvMPYXYwUyHdq@cluster0.pbaou.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+MONGO_URL = getenv("MONGO_DB", "mongodb+srv://creatorar30:fdINvMPYXYwUyHdq@cluster0.pbaou.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
 # Initialize Telegram client
 client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
