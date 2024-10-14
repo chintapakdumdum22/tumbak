@@ -6,6 +6,9 @@ from telethon import TelegramClient, events
 from pymongo import MongoClient
 from threading import Thread
 
+# Ensure the downloads directory exists
+os.makedirs('./downloads', exist_ok=True)
+
 # Environment variables with defaults
 API_ID = os.getenv("API_ID", "20736921")
 API_HASH = os.getenv("API_HASH", "42b34442e52dc3e07b3e0783389be8cb")
@@ -46,7 +49,7 @@ def get_decryption_key(uri):
 # Download and decrypt the m3u8 video using N_m3u8DL-RE
 def download_and_decrypt(m3u8_link, key, iv):
     command = [
-        "N_m3u8DL-RE",
+        "./N_m3u8DL-RE",  # Use relative path
         m3u8_link,
         "--key", key,
         "--iv", iv,
