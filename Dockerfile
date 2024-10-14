@@ -12,6 +12,8 @@ RUN apt-get update -y && apt-get upgrade -y \
     libjpeg-dev \
     zlib1g-dev \
     libpng-dev \
+    libaio-dev \
+    build-essential \
     ffmpeg \
     aria2 \
     python3-venv \
