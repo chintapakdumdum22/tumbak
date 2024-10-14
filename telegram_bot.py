@@ -5,12 +5,14 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from flask import Flask
 
-# Create a Flask app for health checks
+
 app = Flask(__name__)
 
 @app.route('/')
-def health_check():
-    return "Bot is running!", 200
+def hello_world():
+    return 'Hello from LuciferBanker'
+
+
 
 # Fetching the environment variables
 API_ID = int(os.getenv("API_ID", "20736921"))
