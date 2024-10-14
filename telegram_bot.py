@@ -1,10 +1,15 @@
 import os
 import subprocess
 import requests
+from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
+app = Flask(__name__)
 
+@app.route('/')
+def hello_world():
+    return 'Hello from LuciferBanker'
 
 
 # Fetching the environment variables
