@@ -2,7 +2,7 @@ import os
 import subprocess
 import requests
 import asyncio
-import threading
+import signal
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -57,7 +57,7 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             subprocess.run(command, check=True)
             await update.message.reply_text("Download completed! Uploading video...")
-            
+
             output_file = "output.mp4"  # Change this to match the actual output filename
 
             with open(output_file, 'rb') as video_file:
@@ -70,10 +70,7 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Failed to retrieve key and IV.")
 
-def run_telegram_bot():
-    asyncio.run(async_run_telegram_bot())
-
-async def async_run_telegram_bot():
+async def run_telegram_bot():
     bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("download", download_video))
@@ -85,13 +82,21 @@ async def async_run_telegram_bot():
 def run_flask_app():
     app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080)))
 
+def handle_exit(sig, frame):
+    print("Shutting down gracefully...")
+    asyncio.get_event_loop().stop()
+
 def main():
+    # Register shutdown handler
+    signal.signal(signal.SIGINT, handle_exit)  # Handle Ctrl+C
+    signal.signal(signal.SIGTERM, handle_exit)  # Handle termination signal
+
     # Start the Flask app in a separate thread
     flask_thread = threading.Thread(target=run_flask_app)
     flask_thread.start()
 
-    # Start the Telegram bot in the main thread
-    run_telegram_bot()
+    # Start the Telegram bot
+    asyncio.run(run_telegram_bot())
 
 if __name__ == '__main__':
     main()
