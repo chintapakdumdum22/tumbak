@@ -1,26 +1,16 @@
-FROM python:3.11-slim
+FROM ubuntu:22.04
 
-# Set the working directory
-WORKDIR /app
+# Install required system packages
+RUN apt-get update -y && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends gcc libffi-dev musl-dev ffmpeg aria2 python3-pip python3-dev \
+    && apt-get install -y python3-aiohttp \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies including git and make
-RUN apt-get update && apt-get install -y git make && \
-    # Clone the N_m3u8DL-RE repository
-    git clone https://github.com/n_m3u8DL-RE/n_m3u8DL-RE.git && \
-    # Change into the cloned directory and install it
-    cd n_m3u8DL-RE && \
-    make install && \
-    # Clean up the installation files
-    rm -rf n_m3u8DL-RE
+COPY . /app/
+WORKDIR /app/
 
-# Copy the requirements file
-COPY requirements.txt .
+# Install Python packages
+RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the bot code
-COPY . .
-
-# Run the bot
-CMD ["python", "telegram_bot.py"]
+CMD ["python3", "telegram_bot.py"]
