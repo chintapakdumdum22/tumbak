@@ -68,9 +68,12 @@ async def start(event):
 @client.on(events.NewMessage)
 async def handle_message(event):
     sender_id = event.sender_id
+    print(f"Sender ID: {sender_id}")  # Debugging line
     if sender_id != OWNER_ID and sender_id not in SUDO_USERS:
         await event.reply("You are not authorized to use this bot.")
         return
+    # ... rest of your code
+
 
     m3u8_link = event.text
     await event.reply("Processing your request...")
