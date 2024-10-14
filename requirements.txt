@@ -30,3 +30,4 @@ motor
 pytz
 umongo==3.1.0
 speedtest-cli
+Flask
