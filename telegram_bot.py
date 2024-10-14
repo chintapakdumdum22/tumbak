@@ -4,8 +4,12 @@ import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
-# Your bot token from BotFather
-BOT_TOKEN = os.getenv('BOT_TOKEN')  # Fetch the bot token from environment variables
+# Fetching the environment variables
+API_ID = int(os.getenv("API_ID", "20736921"))
+API_HASH = os.getenv("API_HASH", "42b34442e52dc3e07b3e0783389be8cb")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
+OWNER_ID = int(os.getenv("OWNER_ID", "1366730834"))
+SUDO_USERS = list(map(int, os.getenv("SUDO_USERS", "1366730834").split()))
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text("Welcome! Use /download <m3u8_url> to download and decrypt the video.")
