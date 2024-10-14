@@ -1,30 +1,33 @@
-FROM python:3.10  # Use a specific version of Python
+# Use official Python image as a base
+FROM python:3.9-slim
 
-# Install required system packages
-RUN apt-get update -y && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    libffi-dev \
-    libssl-dev \
-    libjpeg-dev \
-    zlib1g-dev \
-    libpng-dev \
-    libaio-dev \
-    build-essential \
+# Set environment variables to avoid issues with input prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Create a directory for the app
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install necessary system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     ffmpeg \
-    aria2 \
-    && apt-get clean \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR /app/
+# Install N_m3u8DL-RE (assuming Linux binary available)
+RUN wget https://github.com/nilaoda/N_m3u8DL-RE/releases/download/3.0.0/N_m3u8DL-RE_Linux -O /usr/local/bin/N_m3u8DL-RE \
+    && chmod +x /usr/local/bin/N_m3u8DL-RE
 
-# Copy your application code
-COPY . .
+# Install Python dependencies from requirements.txt
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python packages
-RUN pip install --no-cache-dir --upgrade --requirement requirements.txt
+# Expose port 8080 for Flask
+EXPOSE 8080
 
-# Command to run your application
-CMD ["python", "telegram_bot.py"]
+# Run the app
+CMD ["python", "app.py"]
