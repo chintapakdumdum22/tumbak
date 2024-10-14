@@ -4,13 +4,13 @@ import requests
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import threading
 
 app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
     return 'Hello from LuciferBanker'
-
 
 # Fetching the environment variables
 API_ID = int(os.getenv("API_ID", "20736921"))
@@ -71,9 +71,10 @@ async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Failed to retrieve key and IV.")
 
-def main():
+def run_flask():
     app.run(host='0.0.0.0', port=int(os.getenv("PORT", 8080)))  # Start Flask app on port 8080
-    
+
+def run_telegram_bot():
     bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
     
     bot_app.add_handler(CommandHandler("start", start))
@@ -82,4 +83,12 @@ def main():
     bot_app.run_polling()
 
 if __name__ == '__main__':
-    main()
+    # Run both Flask and Telegram bot using threads
+    flask_thread = threading.Thread(target=run_flask)
+    telegram_thread = threading.Thread(target=run_telegram_bot)
+
+    flask_thread.start()
+    telegram_thread.start()
+
+    flask_thread.join()
+    telegram_thread.join()
