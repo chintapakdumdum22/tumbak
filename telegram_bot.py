@@ -5,7 +5,7 @@ from flask import Flask, request
 from telethon import TelegramClient, events
 from pymongo import MongoClient
 
-# Required credentials
+# Environment variables (store them in Koyeb)
 API_ID = os.getenv("20736921")
 API_HASH = os.getenv("42b34442e52dc3e07b3e0783389be8cb")
 BOT_TOKEN = os.getenv("8015663864:AAGLRoTMXkj9Ndq4PL7oKLo0AtaYT68rxCM")
@@ -16,14 +16,14 @@ MONGO_URL = os.getenv("mongodb+srv://creatorar30:fdINvMPYXYwUyHdq@cluster0.pbaou
 # Initialize Telegram client
 client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# MongoDB setup for storing data
+# MongoDB setup
 mongo_client = MongoClient(MONGO_URL)
 db = mongo_client['telegram_bot_db']
 
-# Flask app
+# Flask app initialization
 app = Flask(__name__)
 
-# Helper function to extract URI and IV from m3u8
+# Extract URI and IV from the m3u8 link
 def extract_uri_iv(m3u8_link):
     response = requests.get(m3u8_link)
     lines = response.text.split('\n')
@@ -36,13 +36,13 @@ def extract_uri_iv(m3u8_link):
             break
     return uri, iv
 
-# Helper function to get key using the URI
+# Get the decryption key using the provided API
 def get_decryption_key(uri):
     key_url = f"https://madxabhi-pw-78ab681aba3f.herokuapp.com/appx-hls-key?videoKey={uri}"
     response = requests.get(key_url)
     return response.text
 
-# Function to download and decrypt video using N_m3u8DL-RE
+# Download and decrypt the m3u8 video using N_m3u8DL-RE
 def download_and_decrypt(m3u8_link, key, iv):
     command = [
         "N_m3u8DL-RE",
@@ -55,11 +55,12 @@ def download_and_decrypt(m3u8_link, key, iv):
     subprocess.run(command, check=True)
     return './downloads/decrypted_video.mp4'
 
-# Handle incoming Telegram messages
+# Telegram Bot: Handle start command
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     await event.respond('Send me an m3u8 link to download and decrypt.')
 
+# Telegram Bot: Handle m3u8 link
 @client.on(events.NewMessage)
 async def handle_message(event):
     sender_id = event.sender_id
@@ -71,13 +72,13 @@ async def handle_message(event):
     await event.reply("Processing your request...")
 
     try:
-        # Extract URI and IV from m3u8
+        # Extract URI and IV from m3u8 link
         uri, iv = extract_uri_iv(m3u8_link)
         if not uri or not iv:
-            await event.reply("Failed to extract URI and IV from the link.")
+            await event.reply("Failed to extract URI and IV from the m3u8 link.")
             return
 
-        # Retrieve the decryption key
+        # Get decryption key
         key = get_decryption_key(uri)
         if not key:
             await event.reply("Failed to retrieve the decryption key.")
@@ -87,21 +88,22 @@ async def handle_message(event):
         video_path = download_and_decrypt(m3u8_link, key, iv)
         await event.reply("Video downloaded and decrypted successfully. Uploading...")
 
-        # Upload the video to Telegram
+        # Upload decrypted video to Telegram
         await client.send_file(event.chat_id, video_path, caption="Here is your decrypted video!")
 
     except Exception as e:
         await event.reply(f"An error occurred: {str(e)}")
 
-# Flask route for health check (for Koyeb deployment)
+# Flask health check route for Koyeb
 @app.route('/')
 def index():
     return 'Telegram bot is running.'
 
+# Run the Flask app and Telegram bot
 if __name__ == '__main__':
-    # Run Flask app
+    # Start Flask app on port 8080
     app.run(host='0.0.0.0', port=8080)
 
-    # Start the Telegram client
+    # Start Telegram client and listen for messages
     client.start()
     client.run_until_disconnected()
